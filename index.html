@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRM – Visitor Relationship Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Grotesk:wght@300..700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ts-dark': '#1a1a2e',
+                        'ts-purple': '#4a3f6b',
+                        'ts-teal': '#0f9b8e',
+                        'ts-gold': '#f4a261',
+                        'ts-coral': '#e76f51',
+                        'ts-cream': '#faf8f5',
+                        'ts-sage': '#a8c5b5',
+                        'pelare-ar': '#3b82f6',
+                        'pelare-vagar': '#f59e0b',
+                        'pelare-kan': '#10b981',
+                    },
+                    fontFamily: {
+                        'display': ['Instrument Serif', 'serif'],
+                        'sans': ['DM Sans', 'sans-serif'],
+                        'mono': ['Space Grotesk', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+            min-height: 100vh;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-light {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        .spiral-ring {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .spiral-ring:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .glow-teal {
+            box-shadow: 0 0 30px rgba(15, 155, 142, 0.3);
+        }
+        
+        .glow-gold {
+            box-shadow: 0 0 30px rgba(244, 162, 97, 0.3);
+        }
+        
+        .glow-coral {
+            box-shadow: 0 0 30px rgba(231, 111, 81, 0.3);
+        }
+        
+        .progress-bar {
+            transition: width 1s ease-out;
+        }
+        
+        .quick-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .quick-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .quick-btn:active {
+            transform: translateY(0);
+        }
+        
+        .timeline-dot {
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-dot:hover {
+            transform: scale(1.3);
+        }
+        
+        .tab-active {
+            background: linear-gradient(135deg, #0f9b8e 0%, #0d8377 100%);
+            box-shadow: 0 4px 15px rgba(15, 155, 142, 0.4);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+        
+        .emoji-mood {
+            font-size: 1.5rem;
+            transition: transform 0.2s ease;
+        }
+        
+        .emoji-mood:hover {
+            transform: scale(1.2);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(15, 155, 142, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(15, 155, 142, 0.7);
+        }
+    </style>
+</head>
+<body class="text-white overflow-x-hidden">
+    <div class="noise-overlay"></div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==================== MOCK DATA ====================
+        const mockVisitor = {
+            id: "TS-2024-0847",
+            name: "Alex Johansson",
+            age: 17,
+            gender: "Han",
+            postnummer: "703 61",
+            stadsdel: "Vivalla",
+            school: "Virginska Gymnasiet",
+            deltagartyp: "Fritidsgårdsdeltagare",
+            trainstation: "Trainstation Vivalla",
+            firstVisit: "2024-09-15",
+            totalVisits: 23,
+            lastVisit: "2024-12-01",
+            kohort: 2,
+            interests: ["Musikproduktion", "Videoklippning", "3D-design"],
+            hasLearnApp: true,
+            progressIndex: {
+                jagAr: 72,
+                jagVagar: 58,
+                jagKan: 65
+            },
+            pivots: {
+                trygghet: 85,
+                sjalvkansla: 68,
+                betydelse: 62,
+                autonomi: 72,
+                mod: 55,
+                inreDriv: 48,
+                kompetens: 78,
+                vardeskapande: 60,
+                framtidstro: 58
+            },
+            badges: ["Första låten", "Videoskapare", "Mentorshjälpare"],
+            recentPulse: [
+                { date: "2024-12-01", score: 4.2, mood: "😊" },
+                { date: "2024-11-28", score: 3.8, mood: "😌" },
+                { date: "2024-11-25", score: 4.5, mood: "🔥" },
+                { date: "2024-11-22", score: 3.5, mood: "😐" },
+                { date: "2024-11-18", score: 4.0, mood: "😊" }
+            ]
+        };
+
+        const mockDailyClimate = {
+            date: "2024-12-02",
+            totalVisitors: 34,
+            avgTrygghet: 87,
+            avgMod: 72,
+            avgLarande: 78,
+            activeNow: 12,
+            moodDistribution: { "🔥": 8, "😊": 15, "😌": 7, "😐": 3, "😔": 1 }
+        };
+
+        const pulsFrågor = {
+            jagAr: {
+                kohort1: [
+                    "Jag kände mig trygg här idag.",
+                    "Jag kände att jag kunde lita på handledarna.",
+                    "Jag vågade vara mig själv i rummet.",
+                    "Jag kände att jag var välkommen."
+                ],
+                kohort2: [
+                    "Jag kände mig stolt över det jag gjorde idag.",
+                    "Jag tyckte att det jag gjorde var värt att visa upp.",
+                    "Jag kände att jag dög som jag är.",
+                    "Jag tog emot feedback utan att tappa modet."
+                ],
+                kohort3: [
+                    "Jag kände att jag gjorde något som betydde något för någon annan.",
+                    "Jag bidrog till att andra fick en bra upplevelse här.",
+                    "Jag hjälpte någon annan idag.",
+                    "Jag kände att jag är en viktig del av gemenskapen."
+                ]
+            },
+            jagVagar: {
+                kohort1: [
+                    "Jag kände mig inspirerad idag.",
+                    "Jag fick välja vad jag ville arbeta med idag.",
+                    "Jag kände mig motiverad att hålla på länge idag.",
+                    "Jag upplevde att mina idéer togs på allvar."
+                ],
+                kohort2: [
+                    "Jag gjorde något som kändes lite utanför min komfortzon.",
+                    "Jag sa min åsikt fast jag inte visste vad andra skulle tycka.",
+                    "Jag försökte igen när något inte fungerade direkt.",
+                    "Jag vågade visa upp något även om det inte var perfekt."
+                ],
+                kohort3: [
+                    "Jag kom hit för att jag själv ville.",
+                    "Jag fortsatte med min uppgift även utan att någon bad mig.",
+                    "Jag kände energi och lust att skapa.",
+                    "Jag ville lära mig mer för min egen skull."
+                ]
+            },
+            jagKan: {
+                kohort1: [
+                    "Jag lärde mig något nytt idag.",
+                    "Jag fick något att fungera som jag inte kunde förut.",
+                    "Jag klarade något jag trodde var för svårt.",
+                    "Jag kunde lösa ett problem på egen hand."
+                ],
+                kohort2: [
+                    "Det jag gjorde hjälpte någon annan.",
+                    "Jag använde det jag kan för att förbättra något.",
+                    "Jag skapade något som andra kan ha nytta av.",
+                    "Jag delade med mig av min kunskap."
+                ],
+                kohort3: [
+                    "Det jag lär mig här känns viktigt för min framtid.",
+                    "Jag känner att jag utvecklas i rätt riktning.",
+                    "Jag tror mer på min förmåga att lyckas framöver.",
+                    "Jag känner hopp inför framtiden."
+                ]
+            }
+        };
+
+        const observationer = {
+            jagAr: {
+                kohort1: [
+                    "Söker ögonkontakt/hälsar",
+                    "Vågar be om hjälp",
+                    "Svarar när andra pratar",
+                    "Sitter kvar och deltar"
+                ],
+                kohort2: [
+                    "Visar stolthet",
+                    "Vågar visa upp resultat",
+                    "Tar emot feedback väl",
+                    "Reflekterar över utveckling"
+                ],
+                kohort3: [
+                    "Erbjuder hjälp till andra",
+                    "Förklarar/visar för kamrat",
+                    "Leder gemensam aktivitet",
+                    "Bidrar till trygghet i gruppen"
+                ]
+            },
+            jagVagar: {
+                kohort1: [
+                    "Hittar egen inspiration",
+                    "Väljer aktivitet själv",
+                    "Provar något nytt"
+                ],
+                kohort2: [
+                    "Visar upp trots osäkerhet",
+                    "Utmanar sig med svårare uppgift",
+                    "Tar ordet i grupp",
+                    "Ber om feedback"
+                ],
+                kohort3: [
+                    "Startar arbete självmant",
+                    "Håller fokus länge",
+                    "Driver eget projekt",
+                    "Fortsätter utanför passet"
+                ]
+            },
+            jagKan: {
+                kohort1: [
+                    "Genomför moment efter instruktion",
+                    "Visar 'aha'-förståelse",
+                    "Löser enklare problem själv"
+                ],
+                kohort2: [
+                    "Bidrar i gemensamt projekt",
+                    "Skapar något med värde",
+                    "Delar kunskap med andra"
+                ],
+                kohort3: [
+                    "Vill komma tillbaka",
+                    "Kopplar till framtiden",
+                    "Tar konkreta steg mot nästa steg",
+                    "Uttrycker hopp om framtiden"
+                ]
+            }
+        };
+
+        const enkätFrågorStart = [
+            "Jag känner mig trygg i grupp tillsammans med andra ungdomar.",
+            "Jag känner att jag kan lita på vuxna ledare eller mentorer.",
+            "Jag vågar prova nya saker även om jag riskerar att misslyckas.",
+            "Jag tar egna initiativ utan att någon behöver be mig.",
+            "Om något är svårt fortsätter jag försöka tills jag klarar det.",
+            "Jag tror på min egen förmåga att hantera svåra utmaningar.",
+            "Jag känner att jag är bra på att lära mig nya saker.",
+            "Det jag gör om dagarna känns meningsfullt för mig.",
+            "Jag ser ljust på min framtid och tror att jag kan nå mina mål."
+        ];
+
+        // ==================== COMPONENTS ====================
+
+        // Tab Navigation
+        const TabNav = ({ activeTab, setActiveTab }) => {
+            const tabs = [
+                { id: 'profil', label: 'Profil', icon: '👤' },
+                { id: 'besok', label: 'Besök', icon: '📍' },
+                { id: 'resa', label: 'Utvecklingsresa', icon: '🌱' },
+                { id: 'admin', label: 'Handledarvy', icon: '🎯' },
+                { id: 'simulator', label: 'Flödessimulator', icon: '⚡' }
+            ];
+
+            return (
+                <nav className="flex gap-2 p-4 glass rounded-2xl mb-6">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-6 py-3 rounded-xl font-mono text-sm font-medium transition-all duration-300 ${
+                                activeTab === tab.id 
+                                    ? 'tab-active text-white' 
+                                    : 'hover:bg-white/10 text-white/70 hover:text-white'
+                            }`}
+                        >
+                            <span className="mr-2">{tab.icon}</span>
+                            {tab.label}
+                        </button>
+                    ))}
+                </nav>
+            );
+        };
+
+        // Utvecklingskompass (Spiral of Growth)
+        const GrowthSpiral = ({ progressIndex, size = 300 }) => {
+            const center = size / 2;
+            const ringWidth = size / 8;
+            
+            const rings = [
+                { id: 'jagAr', label: 'Jag är', value: progressIndex.jagAr, color: '#3b82f6', radius: size * 0.4 },
+                { id: 'jagVagar', label: 'Jag vågar', value: progressIndex.jagVagar, color: '#f59e0b', radius: size * 0.28 },
+                { id: 'jagKan', label: 'Jag kan', value: progressIndex.jagKan, color: '#10b981', radius: size * 0.16 }
+            ];
+
+            const polarToCartesian = (cx, cy, r, angle) => {
+                const rad = (angle - 90) * Math.PI / 180;
+                return {
+                    x: cx + r * Math.cos(rad),
+                    y: cy + r * Math.sin(rad)
+                };
+            };
+
+            const describeArc = (cx, cy, r, startAngle, endAngle) => {
+                const start = polarToCartesian(cx, cy, r, endAngle);
+                const end = polarToCartesian(cx, cy, r, startAngle);
+                const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+                return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+            };
+
+            return (
+                <div className="relative" style={{ width: size, height: size }}>
+                    <svg width={size} height={size} className="transform -rotate-90">
+                        {rings.map((ring, i) => (
+                            <g key={ring.id}>
+                                {/* Background ring */}
+                                <circle
+                                    cx={center}
+                                    cy={center}
+                                    r={ring.radius}
+                                    fill="none"
+                                    stroke="rgba(255,255,255,0.1)"
+                                    strokeWidth={ringWidth}
+                                />
+                                {/* Progress arc */}
+                                <path
+                                    d={describeArc(center, center, ring.radius, 0, ring.value * 3.6)}
+                                    fill="none"
+                                    stroke={ring.color}
+                                    strokeWidth={ringWidth}
+                                    strokeLinecap="round"
+                                    className="spiral-ring"
+                                    style={{
+                                        filter: `drop-shadow(0 0 10px ${ring.color}80)`
+                                    }}
+                                />
+                            </g>
+                        ))}
+                    </svg>
+                    
+                    {/* Center content */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="text-3xl font-display font-bold text-white">
+                                {Math.round((progressIndex.jagAr + progressIndex.jagVagar + progressIndex.jagKan) / 3)}
+                            </div>
+                            <div className="text-xs text-white/60 font-mono uppercase tracking-wider">Index</div>
+                        </div>
+                    </div>
+                    
+                    {/* Labels */}
+                    <div className="absolute -bottom-8 left-0 right-0 flex justify-center gap-6 text-xs font-mono">
+                        {rings.map(ring => (
+                            <div key={ring.id} className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ring.color }}></div>
+                                <span className="text-white/70">{ring.label}</span>
+                                <span className="text-white font-bold">{ring.value}%</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // Progress Bar Component
+        const ProgressBar = ({ value, color, label, className = "" }) => (
+            <div className={`${className}`}>
+                <div className="flex justify-between mb-1">
+                    <span className="text-sm text-white/70">{label}</span>
+                    <span className="text-sm font-mono text-white">{value}%</span>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                        className="h-full rounded-full progress-bar"
+                        style={{ width: `${value}%`, backgroundColor: color }}
+                    />
+                </div>
+            </div>
+        );
+
+        // Mood Timeline
+        const MoodTimeline = ({ pulseData }) => (
+            <div className="flex items-end gap-3 h-20">
+                {pulseData.map((item, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1 timeline-dot cursor-pointer group">
+                        <span className="emoji-mood">{item.mood}</span>
+                        <div 
+                            className="w-2 rounded-full bg-ts-teal transition-all"
+                            style={{ height: `${item.score * 12}px` }}
+                        />
+                        <span className="text-[10px] text-white/40 group-hover:text-white/70 transition-colors">
+                            {item.date.slice(5)}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+
+        // ==================== PROFIL VIEW ====================
+        const ProfilView = () => (
+            <div className="grid grid-cols-12 gap-6 fade-in">
+                {/* Left Column - Basic Info */}
+                <div className="col-span-4 space-y-6">
+                    {/* Avatar Card */}
+                    <div className="glass rounded-3xl p-6 card-hover">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-ts-teal to-ts-purple flex items-center justify-center text-3xl font-display">
+                                {mockVisitor.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-display text-white">{mockVisitor.name}</h2>
+                                <p className="text-white/60 font-mono text-sm">{mockVisitor.id}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Ålder</span>
+                                <span className="text-white">{mockVisitor.age} år</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Område</span>
+                                <span className="text-white">{mockVisitor.stadsdel}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Skola</span>
+                                <span className="text-white">{mockVisitor.school}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Deltagartyp</span>
+                                <span className="text-ts-teal">{mockVisitor.deltagartyp}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Learn i fickan</span>
+                                <span className={mockVisitor.hasLearnApp ? 'text-green-400' : 'text-red-400'}>
+                                    {mockVisitor.hasLearnApp ? '✓ Ja' : '✗ Nej'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Kohort & Stats */}
+                    <div className="glass rounded-3xl p-6 card-hover">
+                        <h3 className="text-lg font-display mb-4 text-white/80">Besöksstatistik</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white/5 rounded-xl p-4 text-center">
+                                <div className="text-3xl font-mono font-bold text-ts-gold">{mockVisitor.totalVisits}</div>
+                                <div className="text-xs text-white/50 uppercase tracking-wider">Besök</div>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-4 text-center">
+                                <div className="text-3xl font-mono font-bold text-ts-teal">K{mockVisitor.kohort}</div>
+                                <div className="text-xs text-white/50 uppercase tracking-wider">Kohort</div>
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/10 text-sm">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-white/50">Första besök</span>
+                                <span className="text-white">{mockVisitor.firstVisit}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-white/50">Senaste besök</span>
+                                <span className="text-white">{mockVisitor.lastVisit}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Interests */}
+                    <div className="glass rounded-3xl p-6 card-hover">
+                        <h3 className="text-lg font-display mb-4 text-white/80">Intressen</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {mockVisitor.interests.map((interest, i) => (
+                                <span key={i} className="px-3 py-1 bg-ts-purple/50 rounded-full text-sm text-white/80">
+                                    {interest}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Center Column - Growth Spiral */}
+                <div className="col-span-4">
+                    <div className="glass rounded-3xl p-8 card-hover h-full flex flex-col items-center justify-center">
+                        <h3 className="text-xl font-display mb-8 text-white/80">Utvecklingskompass</h3>
+                        <GrowthSpiral progressIndex={mockVisitor.progressIndex} size={280} />
+                        
+                        <div className="mt-12 w-full space-y-4">
+                            <ProgressBar 
+                                value={mockVisitor.progressIndex.jagAr} 
+                                color="#3b82f6" 
+                                label="Jag är – Samhörighet & Trygghet"
+                            />
+                            <ProgressBar 
+                                value={mockVisitor.progressIndex.jagVagar} 
+                                color="#f59e0b" 
+                                label="Jag vågar – Autonomi & Mod"
+                            />
+                            <ProgressBar 
+                                value={mockVisitor.progressIndex.jagKan} 
+                                color="#10b981" 
+                                label="Jag kan – Kompetens & Framtidstro"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column - Details */}
+                <div className="col-span-4 space-y-6">
+                    {/* Pivot Details */}
+                    <div className="glass rounded-3xl p-6 card-hover">
+                        <h3 className="text-lg font-display mb-4 text-white/80">Pivot-detaljer</h3>
+                        <div className="space-y-3">
+                            <div className="pb-3 border-b border-white/10">
+                                <div className="text-xs text-pelare-ar uppercase tracking-wider mb-2">Jag är</div>
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.trygghet}</div>
+                                        <div className="text-white/40">Trygghet</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.sjalvkansla}</div>
+                                        <div className="text-white/40">Självkänsla</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.betydelse}</div>
+                                        <div className="text-white/40">Betydelse</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="pb-3 border-b border-white/10">
+                                <div className="text-xs text-pelare-vagar uppercase tracking-wider mb-2">Jag vågar</div>
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.autonomi}</div>
+                                        <div className="text-white/40">Autonomi</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.mod}</div>
+                                        <div className="text-white/40">Mod</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.inreDriv}</div>
+                                        <div className="text-white/40">Inre driv</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-pelare-kan uppercase tracking-wider mb-2">Jag kan</div>
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.kompetens}</div>
+                                        <div className="text-white/40">Kompetens</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.vardeskapande}</div>
+                                        <div className="text-white/40">Värdeskapande</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-mono text-lg text-white">{mockVisitor.pivots.framtidstro}</div>
+                                        <div className="text-white/40">Framtidstro</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Recent Pulse */}
+                    <div className="glass rounded-3xl p-6 card-hover">
+                        <h3 className="text-lg font-display mb-4 text-white/80">Senaste pulsmätningar</h3>
+                        <MoodTimeline pulseData={mockVisitor.recentPulse} />
+                    </div>
+
+                    {/* Badges */}
+                    <div className="glass rounded-3xl p-6 card-hover">
+                        <h3 className="text-lg font-display mb-4 text-white/80">Badges</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {mockVisitor.badges.map((badge, i) => (
+                                <span key={i} className="px-4 py-2 bg-gradient-to-r from-ts-gold/30 to-ts-coral/30 rounded-xl text-sm text-white border border-ts-gold/30">
+                                    🏆 {badge}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // ==================== BESÖK VIEW ====================
+        const BesokView = () => {
+            const todayVisits = [
+                { time: "14:32", name: "Alex Johansson", mood: "😊", activity: "Musikproduktion", duration: "2h 15m" },
+                { time: "14:45", name: "Sara Ahmed", mood: "🔥", activity: "3D-modellering", duration: "1h 45m" },
+                { time: "15:10", name: "Marcus Lindqvist", mood: "😌", activity: "Videoklippning", duration: "1h 20m" },
+                { time: "15:22", name: "Fatima Hassan", mood: "😊", activity: "Grafisk design", duration: "55m" },
+                { time: "15:35", name: "Oscar Eriksson", mood: "😐", activity: "Musikproduktion", duration: "40m" },
+            ];
+
+            return (
+                <div className="grid grid-cols-12 gap-6 fade-in">
+                    {/* Climate Overview */}
+                    <div className="col-span-12">
+                        <div className="glass rounded-3xl p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-display text-white">Dagens klimat</h2>
+                                    <p className="text-white/50 font-mono text-sm">{mockDailyClimate.date} • Trainstation Vivalla</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-green-400 pulse-dot"></div>
+                                    <span className="text-white/70">{mockDailyClimate.activeNow} aktiva just nu</span>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-5 gap-4">
+                                <div className="bg-white/5 rounded-2xl p-5 text-center">
+                                    <div className="text-4xl font-mono font-bold text-white">{mockDailyClimate.totalVisitors}</div>
+                                    <div className="text-sm text-white/50 mt-1">Besökare idag</div>
+                                </div>
+                                <div className="bg-pelare-ar/20 rounded-2xl p-5 text-center border border-pelare-ar/30">
+                                    <div className="text-4xl font-mono font-bold text-pelare-ar">{mockDailyClimate.avgTrygghet}%</div>
+                                    <div className="text-sm text-white/50 mt-1">Trygghet</div>
+                                </div>
+                                <div className="bg-pelare-vagar/20 rounded-2xl p-5 text-center border border-pelare-vagar/30">
+                                    <div className="text-4xl font-mono font-bold text-pelare-vagar">{mockDailyClimate.avgMod}%</div>
+                                    <div className="text-sm text-white/50 mt-1">Mod</div>
+                                </div>
+                                <div className="bg-pelare-kan/20 rounded-2xl p-5 text-center border border-pelare-kan/30">
+                                    <div className="text-4xl font-mono font-bold text-pelare-kan">{mockDailyClimate.avgLarande}%</div>
+                                    <div className="text-sm text-white/50 mt-1">Lärande</div>
+                                </div>
+                                <div className="bg-white/5 rounded-2xl p-5">
+                                    <div className="text-sm text-white/50 mb-2">Stämning</div>
+                                    <div className="flex justify-between text-2xl">
+                                        {Object.entries(mockDailyClimate.moodDistribution).map(([emoji, count]) => (
+                                            <div key={emoji} className="text-center">
+                                                <div>{emoji}</div>
+                                                <div className="text-xs font-mono text-white/60">{count}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Individual View - Selected Visitor */}
+                    <div className="col-span-8">
+                        <div className="glass rounded-3xl p-6 card-hover">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-ts-teal to-ts-purple flex items-center justify-center text-xl font-display">
+                                        AJ
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-display text-white">Alex Johansson</h3>
+                                        <p className="text-white/50 text-sm">Besök #23 • Inkommen 14:32</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-center">
+                                        <div className="text-3xl">😊</div>
+                                        <div className="text-xs text-white/40">Incheckning</div>
+                                    </div>
+                                    <div className="text-white/20">→</div>
+                                    <div className="text-center">
+                                        <div className="text-3xl">🔥</div>
+                                        <div className="text-xs text-white/40">Nu</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Activity Timeline */}
+                            <div className="mb-6">
+                                <h4 className="text-sm text-white/50 uppercase tracking-wider mb-4">Aktivitetstidslinje</h4>
+                                <div className="relative">
+                                    <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-white/10"></div>
+                                    <div className="space-y-4">
+                                        {[
+                                            { time: "14:32", event: "Check-in", type: "system", detail: "Pulsfråga: 'Jag kände mig välkommen' → 4/5" },
+                                            { time: "14:35", event: "Startade mission", type: "activity", detail: "Musikproduktion: Skapa din första beat" },
+                                            { time: "15:20", event: "Badge earned", type: "achievement", detail: "🏆 Första beatet" },
+                                            { time: "15:45", event: "Hjälpte annan", type: "social", detail: "Observation: Visade Marcus grunderna i FL Studio" },
+                                            { time: "16:15", event: "Portfolio upload", type: "create", detail: "Laddade upp 'Summer Vibes Beat'" },
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex items-start gap-4 relative">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center z-10 ${
+                                                    item.type === 'system' ? 'bg-blue-500/20 text-blue-400' :
+                                                    item.type === 'activity' ? 'bg-purple-500/20 text-purple-400' :
+                                                    item.type === 'achievement' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                    item.type === 'social' ? 'bg-pink-500/20 text-pink-400' :
+                                                    'bg-green-500/20 text-green-400'
+                                                }`}>
+                                                    {item.type === 'system' ? '📍' :
+                                                     item.type === 'activity' ? '🎵' :
+                                                     item.type === 'achievement' ? '🏆' :
+                                                     item.type === 'social' ? '🤝' : '📤'}
+                                                </div>
+                                                <div className="flex-1 pt-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-white font-medium">{item.event}</span>
+                                                        <span className="text-white/30 font-mono text-xs">{item.time}</span>
+                                                    </div>
+                                                    <p className="text-white/50 text-sm mt-1">{item.detail}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quick Pulse Now */}
+                            <div className="bg-white/5 rounded-2xl p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="text-white font-medium">Aktuell pulsfråga</h4>
+                                        <p className="text-white/50 text-sm mt-1">"Jag vågade prova något nytt idag"</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {[1,2,3,4,5].map(n => (
+                                            <button key={n} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-ts-teal/30 text-white font-mono transition-all hover:scale-110">
+                                                {n}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Today's Visitors List */}
+                    <div className="col-span-4">
+                        <div className="glass rounded-3xl p-6 card-hover">
+                            <h3 className="text-lg font-display mb-4 text-white/80">Idag på plats</h3>
+                            <div className="space-y-3">
+                                {todayVisits.map((visit, i) => (
+                                    <div key={i} className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${
+                                        i === 0 ? 'bg-ts-teal/20 border border-ts-teal/30' : 'hover:bg-white/5'
+                                    }`}>
+                                        <div className="text-2xl">{visit.mood}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-white text-sm font-medium truncate">{visit.name}</div>
+                                            <div className="text-white/40 text-xs">{visit.activity}</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-white/60 text-xs font-mono">{visit.time}</div>
+                                            <div className="text-ts-teal text-xs">{visit.duration}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==================== RESA VIEW ====================
+        const ResaView = () => {
+            const timelineData = [
+                { date: "Sep 2024", visits: 3, jagAr: 45, jagVagar: 30, jagKan: 35, event: "Första besöket" },
+                { date: "Okt 2024", visits: 8, jagAr: 55, jagVagar: 40, jagKan: 45, event: "Startade musikprojekt" },
+                { date: "Nov 2024", visits: 12, jagAr: 68, jagVagar: 52, jagKan: 58, event: "Första badge" },
+                { date: "Dec 2024", visits: 23, jagAr: 72, jagVagar: 58, jagKan: 65, event: "Hjälpte annan deltagare" },
+            ];
+
+            return (
+                <div className="fade-in">
+                    {/* Header Stats */}
+                    <div className="glass rounded-3xl p-6 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-ts-teal to-ts-purple flex items-center justify-center text-2xl font-display">
+                                    AJ
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-display text-white">{mockVisitor.name}</h2>
+                                    <p className="text-white/50">Utvecklingsresa sedan {mockVisitor.firstVisit}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-8">
+                                <div className="text-center">
+                                    <div className="text-3xl font-mono font-bold text-ts-teal">+27</div>
+                                    <div className="text-xs text-white/50 uppercase">Jag är</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-3xl font-mono font-bold text-ts-gold">+28</div>
+                                    <div className="text-xs text-white/50 uppercase">Jag vågar</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-3xl font-mono font-bold text-ts-coral">+30</div>
+                                    <div className="text-xs text-white/50 uppercase">Jag kan</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-12 gap-6">
+                        {/* Main Journey Visualization */}
+                        <div className="col-span-8">
+                            <div className="glass rounded-3xl p-6 card-hover">
+                                <h3 className="text-xl font-display mb-6 text-white/80">Förflyttning över tid</h3>
+                                
+                                {/* Progress Chart Placeholder - in real app use Chart.js */}
+                                <div className="relative h-64 mb-6">
+                                    <div className="absolute inset-0 flex items-end">
+                                        {timelineData.map((data, i) => (
+                                            <div key={i} className="flex-1 flex flex-col items-center gap-1 px-2">
+                                                <div className="w-full flex gap-1 h-48 items-end">
+                                                    <div 
+                                                        className="flex-1 bg-pelare-ar/60 rounded-t transition-all duration-500"
+                                                        style={{ height: `${data.jagAr * 2}px` }}
+                                                    />
+                                                    <div 
+                                                        className="flex-1 bg-pelare-vagar/60 rounded-t transition-all duration-500"
+                                                        style={{ height: `${data.jagVagar * 2}px` }}
+                                                    />
+                                                    <div 
+                                                        className="flex-1 bg-pelare-kan/60 rounded-t transition-all duration-500"
+                                                        style={{ height: `${data.jagKan * 2}px` }}
+                                                    />
+                                                </div>
+                                                <div className="text-xs text-white/50 font-mono">{data.date}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Legend */}
+                                <div className="flex justify-center gap-8 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded bg-pelare-ar"></div>
+                                        <span className="text-white/70">Jag är</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded bg-pelare-vagar"></div>
+                                        <span className="text-white/70">Jag vågar</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded bg-pelare-kan"></div>
+                                        <span className="text-white/70">Jag kan</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Key Moments */}
+                            <div className="glass rounded-3xl p-6 mt-6 card-hover">
+                                <h3 className="text-xl font-display mb-6 text-white/80">Nyckelhändelser</h3>
+                                <div className="relative">
+                                    <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-ts-teal via-ts-gold to-ts-coral"></div>
+                                    <div className="space-y-6">
+                                        {[
+                                            { date: "15 sep", title: "Första besöket", desc: "Kom in för att kolla runt. Nyfiken på musikproduktion.", type: "start" },
+                                            { date: "3 okt", title: "Startade första projektet", desc: "Vågade börja med FL Studio efter att ha tittat på andra.", type: "grow" },
+                                            { date: "18 nov", title: "Publicerade första alstret", desc: "Laddade upp 'Night Drive' i portfolion. Fick positiv feedback.", type: "create" },
+                                            { date: "25 nov", title: "Blev mentor", desc: "Hjälpte Marcus komma igång. Första gången hen lärde ut.", type: "lead" },
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex gap-4 relative">
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center z-10 ${
+                                                    item.type === 'start' ? 'bg-blue-500/20 text-blue-400' :
+                                                    item.type === 'grow' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                    item.type === 'create' ? 'bg-green-500/20 text-green-400' :
+                                                    'bg-purple-500/20 text-purple-400'
+                                                }`}>
+                                                    {item.type === 'start' ? '🌱' :
+                                                     item.type === 'grow' ? '🔥' :
+                                                     item.type === 'create' ? '✨' : '👑'}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-white font-medium">{item.title}</span>
+                                                        <span className="text-white/30 font-mono text-xs">{item.date}</span>
+                                                    </div>
+                                                    <p className="text-white/50 text-sm mt-1">{item.desc}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Side Panel */}
+                        <div className="col-span-4 space-y-6">
+                            {/* Before/After */}
+                            <div className="glass rounded-3xl p-6 card-hover">
+                                <h3 className="text-lg font-display mb-4 text-white/80">Före → Efter</h3>
+                                <div className="space-y-4">
+                                    {[
+                                        { label: "Trygghet", before: 45, after: 85, color: "#3b82f6" },
+                                        { label: "Självkänsla", before: 38, after: 68, color: "#3b82f6" },
+                                        { label: "Mod", before: 25, after: 55, color: "#f59e0b" },
+                                        { label: "Inre driv", before: 20, after: 48, color: "#f59e0b" },
+                                        { label: "Kompetens", before: 40, after: 78, color: "#10b981" },
+                                        { label: "Framtidstro", before: 35, after: 58, color: "#10b981" },
+                                    ].map((item, i) => (
+                                        <div key={i}>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="text-white/70">{item.label}</span>
+                                                <span className="font-mono">
+                                                    <span className="text-white/40">{item.before}</span>
+                                                    <span className="text-white/20 mx-1">→</span>
+                                                    <span className="text-white">{item.after}</span>
+                                                </span>
+                                            </div>
+                                            <div className="h-2 bg-white/10 rounded-full overflow-hidden relative">
+                                                <div 
+                                                    className="absolute h-full bg-white/20 rounded-full"
+                                                    style={{ width: `${item.before}%` }}
+                                                />
+                                                <div 
+                                                    className="absolute h-full rounded-full progress-bar"
+                                                    style={{ width: `${item.after}%`, backgroundColor: item.color }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Achievements */}
+                            <div className="glass rounded-3xl p-6 card-hover">
+                                <h3 className="text-lg font-display mb-4 text-white/80">Milstolpar</h3>
+                                <div className="space-y-3">
+                                    {[
+                                        { icon: "🎵", title: "Första låten", date: "18 nov" },
+                                        { icon: "🎬", title: "Videoskapare", date: "22 nov" },
+                                        { icon: "🤝", title: "Mentorshjälpare", date: "25 nov" },
+                                    ].map((badge, i) => (
+                                        <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                                            <div className="text-2xl">{badge.icon}</div>
+                                            <div className="flex-1">
+                                                <div className="text-white text-sm">{badge.title}</div>
+                                                <div className="text-white/40 text-xs">{badge.date}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Next Steps */}
+                            <div className="glass rounded-3xl p-6 card-hover border border-ts-teal/30">
+                                <h3 className="text-lg font-display mb-4 text-ts-teal">Nästa steg</h3>
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-ts-teal">→</span>
+                                        <span className="text-white/70">Fördjupa sig i mixing och mastering</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-ts-teal">→</span>
+                                        <span className="text-white/70">Leda en workshop för nybörjare</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-ts-teal">→</span>
+                                        <span className="text-white/70">Utforska samarbetsprojekt</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==================== ADMIN VIEW ====================
+        const AdminView = () => {
+            const [selectedPelare, setSelectedPelare] = useState('jagAr');
+            const [selectedKohort, setSelectedKohort] = useState(2);
+            const [registeredObs, setRegisteredObs] = useState([]);
+            const [showConfirm, setShowConfirm] = useState(null);
+
+            const pelareConfig = {
+                jagAr: { label: 'Jag är', color: 'pelare-ar', pivots: ['Trygghet & tillit', 'Självkänsla', 'Betydelse'] },
+                jagVagar: { label: 'Jag vågar', color: 'pelare-vagar', pivots: ['Autonomi & inspiration', 'Mod', 'Inre driv'] },
+                jagKan: { label: 'Jag kan', color: 'pelare-kan', pivots: ['Kompetens & lärande', 'Värdeskapande', 'Framtidstro'] }
+            };
+
+            const currentObs = observationer[selectedPelare][`kohort${selectedKohort}`] || [];
+            const pivotIndex = selectedKohort - 1;
+            const currentPivot = pelareConfig[selectedPelare].pivots[pivotIndex];
+
+            const handleObservation = (obs) => {
+                const newObs = {
+                    id: Date.now(),
+                    text: obs,
+                    pelare: selectedPelare,
+                    kohort: selectedKohort,
+                    pivot: currentPivot,
+                    time: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+                };
+                setRegisteredObs([newObs, ...registeredObs]);
+                setShowConfirm(obs);
+                setTimeout(() => setShowConfirm(null), 2000);
+            };
+
+            return (
+                <div className="fade-in">
+                    {/* Header */}
+                    <div className="glass rounded-3xl p-6 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-ts-teal to-ts-purple flex items-center justify-center text-2xl font-display">
+                                    AJ
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-display text-white">{mockVisitor.name}</h2>
+                                    <p className="text-white/50">Besök #23 • Kohort {mockVisitor.kohort}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm text-white/50">Nuvarande session</div>
+                                <div className="text-ts-teal font-mono">2h 15m aktiv</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-12 gap-6">
+                        {/* Quick Observation Panel */}
+                        <div className="col-span-8">
+                            <div className="glass rounded-3xl p-6">
+                                <h3 className="text-xl font-display mb-6 text-white/80">Snabbregistrering – Observation</h3>
+                                
+                                {/* Pelare Tabs */}
+                                <div className="flex gap-2 mb-4">
+                                    {Object.entries(pelareConfig).map(([key, config]) => (
+                                        <button
+                                            key={key}
+                                            onClick={() => setSelectedPelare(key)}
+                                            className={`px-6 py-3 rounded-xl font-mono text-sm font-medium transition-all ${
+                                                selectedPelare === key 
+                                                    ? `bg-${config.color} text-white shadow-lg` 
+                                                    : 'bg-white/5 text-white/60 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {config.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Kohort Selector */}
+                                <div className="flex gap-2 mb-6">
+                                    {[1, 2, 3].map(k => (
+                                        <button
+                                            key={k}
+                                            onClick={() => setSelectedKohort(k)}
+                                            className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                                                selectedKohort === k 
+                                                    ? 'bg-white/20 text-white' 
+                                                    : 'bg-white/5 text-white/40 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            Kohort {k} ({k === 1 ? '1-10' : k === 2 ? '11-30' : '30+'} besök)
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Current Pivot Label */}
+                                <div className="mb-4 p-3 bg-white/5 rounded-xl">
+                                    <span className="text-white/50 text-sm">Pivot: </span>
+                                    <span className="text-white font-medium">{currentPivot}</span>
+                                </div>
+
+                                {/* Observation Buttons */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    {currentObs.map((obs, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => handleObservation(obs)}
+                                            className={`quick-btn p-4 rounded-xl text-left transition-all ${
+                                                showConfirm === obs 
+                                                    ? 'bg-green-500/30 border-2 border-green-500' 
+                                                    : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full ${
+                                                    showConfirm === obs ? 'bg-green-500' : `bg-${pelareConfig[selectedPelare].color}`
+                                                }`}></div>
+                                                <span className="text-white text-sm">{obs}</span>
+                                            </div>
+                                            {showConfirm === obs && (
+                                                <div className="text-green-400 text-xs mt-2 ml-6">✓ Registrerad!</div>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Quick Note */}
+                                <div className="mt-6 flex gap-3">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Lägg till egen observation..."
+                                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-ts-teal/50"
+                                    />
+                                    <button className="px-6 py-3 bg-ts-teal rounded-xl text-white font-medium hover:bg-ts-teal/80 transition-all">
+                                        Lägg till
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Session Log */}
+                        <div className="col-span-4">
+                            <div className="glass rounded-3xl p-6 card-hover">
+                                <h3 className="text-lg font-display mb-4 text-white/80">Denna session</h3>
+                                
+                                {registeredObs.length === 0 ? (
+                                    <div className="text-center py-8 text-white/30">
+                                        <div className="text-4xl mb-2">📋</div>
+                                        <p className="text-sm">Inga observationer ännu</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                                        {registeredObs.map((obs) => (
+                                            <div key={obs.id} className="p-3 bg-white/5 rounded-xl slide-up">
+                                                <div className="flex items-start gap-2">
+                                                    <div className={`w-2 h-2 rounded-full mt-1.5 bg-${pelareConfig[obs.pelare].color}`}></div>
+                                                    <div className="flex-1">
+                                                        <p className="text-white text-sm">{obs.text}</p>
+                                                        <p className="text-white/40 text-xs mt-1">
+                                                            {pelareConfig[obs.pelare].label} • {obs.pivot} • {obs.time}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {registeredObs.length > 0 && (
+                                    <button className="w-full mt-4 py-3 bg-ts-teal/20 hover:bg-ts-teal/30 rounded-xl text-ts-teal text-sm font-medium transition-all">
+                                        Spara sessionslogg
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Quick Stats */}
+                            <div className="glass rounded-3xl p-6 mt-6 card-hover">
+                                <h3 className="text-lg font-display mb-4 text-white/80">Snabbvy</h3>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-white/60">Dagens observationer</span>
+                                        <span className="font-mono text-white">{registeredObs.length}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-white/60">Senaste puls</span>
+                                        <span className="text-2xl">😊</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-white/60">Aktivitet</span>
+                                        <span className="text-ts-teal text-sm">Musikproduktion</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==================== SIMULATOR VIEW ====================
+        const SimulatorView = () => {
+            const [currentStep, setCurrentStep] = useState(null);
+            const [showModal, setShowModal] = useState(false);
+            const [modalContent, setModalContent] = useState(null);
+            const [simulatorKohort, setSimulatorKohort] = useState(1);
+            const [visitNumber, setVisitNumber] = useState(1);
+
+            const flowSteps = [
+                { id: 'checkin', label: 'Check-in', icon: '📍', type: 'system', triggers: ['pulsfråga'] },
+                { id: 'activity', label: 'Aktivitet', icon: '🎯', type: 'activity', triggers: ['mission', 'video'] },
+                { id: 'create', label: 'Skapande', icon: '✨', type: 'create', triggers: ['upload', 'badge'] },
+                { id: 'social', label: 'Social', icon: '🤝', type: 'social', triggers: ['observation'] },
+                { id: 'checkout', label: 'Check-ut', icon: '👋', type: 'system', triggers: ['pulsfråga', 'enkät'] },
+            ];
+
+            const getKohortFromVisits = (visits) => {
+                if (visits <= 10) return 1;
+                if (visits <= 30) return 2;
+                return 3;
+            };
+
+            const triggerAction = (step) => {
+                setCurrentStep(step.id);
+                
+                const kohort = getKohortFromVisits(visitNumber);
+                setSimulatorKohort(kohort);
+
+                if (step.id === 'checkin') {
+                    // Show pulse question
+                    const questions = pulsFrågor.jagAr[`kohort${kohort}`];
+                    const randomQ = questions[Math.floor(Math.random() * questions.length)];
+                    setModalContent({
+                        type: 'pulse',
+                        title: 'Pulsfråga vid incheckning',
+                        question: randomQ,
+                        pelare: 'Jag är',
+                        pivot: kohort === 1 ? 'Trygghet & tillit' : kohort === 2 ? 'Självkänsla' : 'Betydelse'
+                    });
+                    setShowModal(true);
+                } else if (step.id === 'checkout') {
+                    if (visitNumber === 1) {
+                        // Show start survey
+                        setModalContent({
+                            type: 'survey',
+                            title: 'Startenkät (Baseline)',
+                            questions: enkätFrågorStart.slice(0, 5)
+                        });
+                    } else {
+                        // Show pulse
+                        const pelare = ['jagAr', 'jagVagar', 'jagKan'][Math.floor(Math.random() * 3)];
+                        const pelareLabel = pelare === 'jagAr' ? 'Jag är' : pelare === 'jagVagar' ? 'Jag vågar' : 'Jag kan';
+                        const questions = pulsFrågor[pelare][`kohort${kohort}`];
+                        const randomQ = questions[Math.floor(Math.random() * questions.length)];
+                        setModalContent({
+                            type: 'pulse',
+                            title: 'Pulsfråga vid utcheckning',
+                            question: randomQ,
+                            pelare: pelareLabel,
+                            pivot: kohort === 1 ? 'Pivot 1' : kohort === 2 ? 'Pivot 2' : 'Pivot 3'
+                        });
+                    }
+                    setShowModal(true);
+                } else if (step.id === 'social') {
+                    // Show observation prompt
+                    const pelare = ['jagAr', 'jagVagar', 'jagKan'][Math.floor(Math.random() * 3)];
+                    const pelareLabel = pelare === 'jagAr' ? 'Jag är' : pelare === 'jagVagar' ? 'Jag vågar' : 'Jag kan';
+                    const obs = observationer[pelare][`kohort${kohort}`];
+                    setModalContent({
+                        type: 'observation',
+                        title: 'Handledarobservation',
+                        options: obs,
+                        pelare: pelareLabel
+                    });
+                    setShowModal(true);
+                } else if (step.id === 'create') {
+                    setModalContent({
+                        type: 'create',
+                        title: 'Portfolio-uppladdning',
+                        message: 'Deltagaren laddar upp sitt alster. Systemet loggar: files.upload, badges.check'
+                    });
+                    setShowModal(true);
+                } else if (step.id === 'activity') {
+                    setModalContent({
+                        type: 'activity',
+                        title: 'Aktivitetslogg',
+                        message: 'Mission startad: "Skapa din första beat"\nSystemet loggar: events.missionStart, events.watchedVideo'
+                    });
+                    setShowModal(true);
+                }
+            };
+
+            return (
+                <div className="fade-in">
+                    {/* Simulator Header */}
+                    <div className="glass rounded-3xl p-6 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-display text-white">Flödessimulator</h2>
+                                <p className="text-white/50">Klicka på stegen för att se vad som triggas</p>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <div className="text-center">
+                                    <div className="text-xs text-white/50 uppercase mb-1">Besök nr</div>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={() => setVisitNumber(Math.max(1, visitNumber - 1))}
+                                            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                                        >-</button>
+                                        <span className="font-mono text-2xl text-white w-12 text-center">{visitNumber}</span>
+                                        <button 
+                                            onClick={() => setVisitNumber(visitNumber + 1)}
+                                            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                                        >+</button>
+                                    </div>
+                                </div>
+                                <div className="text-center px-6 py-3 bg-white/5 rounded-xl">
+                                    <div className="text-xs text-white/50 uppercase mb-1">Kohort</div>
+                                    <div className="font-mono text-xl text-ts-teal">{getKohortFromVisits(visitNumber)}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Kohort Quick Select */}
+                        <div className="flex gap-2 mt-4">
+                            <button 
+                                onClick={() => setVisitNumber(1)}
+                                className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                                    visitNumber === 1 ? 'bg-ts-coral text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'
+                                }`}
+                            >
+                                🌱 Första besöket
+                            </button>
+                            <button 
+                                onClick={() => setVisitNumber(5)}
+                                className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                                    visitNumber >= 2 && visitNumber <= 10 ? 'bg-ts-teal text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'
+                                }`}
+                            >
+                                K1 (besök 1-10)
+                            </button>
+                            <button 
+                                onClick={() => setVisitNumber(20)}
+                                className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                                    visitNumber >= 11 && visitNumber <= 30 ? 'bg-ts-gold text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'
+                                }`}
+                            >
+                                K2 (besök 11-30)
+                            </button>
+                            <button 
+                                onClick={() => setVisitNumber(35)}
+                                className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                                    visitNumber > 30 ? 'bg-ts-purple text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'
+                                }`}
+                            >
+                                K3 (30+ besök)
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Flow Visualization */}
+                    <div className="glass rounded-3xl p-8">
+                        <h3 className="text-xl font-display mb-8 text-white/80 text-center">Besöksflöde</h3>
+                        
+                        <div className="flex items-center justify-between max-w-4xl mx-auto">
+                            {flowSteps.map((step, i) => (
+                                <React.Fragment key={step.id}>
+                                    <button
+                                        onClick={() => triggerAction(step)}
+                                        className={`flex flex-col items-center gap-3 p-6 rounded-2xl transition-all cursor-pointer ${
+                                            currentStep === step.id 
+                                                ? 'bg-ts-teal/30 border-2 border-ts-teal scale-110 shadow-lg glow-teal' 
+                                                : 'bg-white/5 hover:bg-white/10 border-2 border-transparent hover:scale-105'
+                                        }`}
+                                    >
+                                        <div className="text-4xl">{step.icon}</div>
+                                        <div className="text-white font-medium">{step.label}</div>
+                                        <div className="flex gap-1">
+                                            {step.triggers.map((t, j) => (
+                                                <span key={j} className="text-xs px-2 py-0.5 bg-white/10 rounded-full text-white/50">
+                                                    {t}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </button>
+                                    {i < flowSteps.length - 1 && (
+                                        <div className="text-white/20 text-2xl">→</div>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+
+                        {/* Data Points Legend */}
+                        <div className="mt-12 grid grid-cols-3 gap-6">
+                            <div className="bg-white/5 rounded-2xl p-5">
+                                <h4 className="text-sm text-white/50 uppercase tracking-wider mb-3">Resultat (här och nu)</h4>
+                                <div className="space-y-2 text-sm text-white/70">
+                                    <div>• Pulsfrågor vid in/ut</div>
+                                    <div>• Aktivitetslogg</div>
+                                    <div>• Handledarobservation</div>
+                                </div>
+                            </div>
+                            <div className="bg-white/5 rounded-2xl p-5">
+                                <h4 className="text-sm text-white/50 uppercase tracking-wider mb-3">Effekt (över tid)</h4>
+                                <div className="space-y-2 text-sm text-white/70">
+                                    <div>• Enkäter var 6:e vecka</div>
+                                    <div>• Aggregerad puls</div>
+                                    <div>• Progressindex beräkning</div>
+                                </div>
+                            </div>
+                            <div className="bg-white/5 rounded-2xl p-5">
+                                <h4 className="text-sm text-white/50 uppercase tracking-wider mb-3">Påverkan (samhälle)</h4>
+                                <div className="space-y-2 text-sm text-white/70">
+                                    <div>• Uppföljningsenkät</div>
+                                    <div>• Kvalitativa berättelser</div>
+                                    <div>• Extern statistik</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Modal */}
+                    {showModal && modalContent && (
+                        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+                            <div className="glass-light rounded-3xl p-8 max-w-lg w-full text-gray-900 slide-up" onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-xl font-display">{modalContent.title}</h3>
+                                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                                </div>
+
+                                {modalContent.type === 'pulse' && (
+                                    <div>
+                                        <div className="mb-4">
+                                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full mr-2">{modalContent.pelare}</span>
+                                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{modalContent.pivot}</span>
+                                        </div>
+                                        <p className="text-lg mb-6">"{modalContent.question}"</p>
+                                        <div className="flex gap-3 justify-center">
+                                            {[1,2,3,4,5].map(n => (
+                                                <button key={n} className="w-14 h-14 rounded-xl bg-gray-100 hover:bg-ts-teal hover:text-white text-xl font-mono transition-all">
+                                                    {n}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-center text-xs text-gray-400 mt-4">1 = Instämmer inte alls • 5 = Instämmer helt</p>
+                                    </div>
+                                )}
+
+                                {modalContent.type === 'survey' && (
+                                    <div>
+                                        <p className="text-sm text-gray-500 mb-4">Denna enkät visas endast efter första besöket för att etablera en baslinje.</p>
+                                        <div className="space-y-4">
+                                            {modalContent.questions.map((q, i) => (
+                                                <div key={i} className="p-4 bg-gray-50 rounded-xl">
+                                                    <p className="text-sm mb-3">{q}</p>
+                                                    <div className="flex gap-2">
+                                                        {[1,2,3,4,5].map(n => (
+                                                            <button key={n} className="flex-1 py-2 rounded-lg bg-white border hover:bg-ts-teal hover:text-white hover:border-ts-teal transition-all text-sm">
+                                                                {n}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-4 text-center">... och {enkätFrågorStart.length - 5} fler frågor</p>
+                                    </div>
+                                )}
+
+                                {modalContent.type === 'observation' && (
+                                    <div>
+                                        <div className="mb-4">
+                                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">{modalContent.pelare}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mb-4">Handledaren väljer observerade beteenden:</p>
+                                        <div className="space-y-2">
+                                            {modalContent.options.map((opt, i) => (
+                                                <button key={i} className="w-full p-4 text-left bg-gray-50 hover:bg-purple-50 rounded-xl transition-all text-sm">
+                                                    ○ {opt}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(modalContent.type === 'create' || modalContent.type === 'activity') && (
+                                    <div>
+                                        <div className="bg-gray-100 rounded-xl p-4 font-mono text-sm whitespace-pre-line">
+                                            {modalContent.message}
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-4">Detta loggas automatiskt i systemet.</p>
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={() => setShowModal(false)}
+                                    className="w-full mt-6 py-3 bg-ts-teal text-white rounded-xl font-medium hover:bg-ts-teal/80 transition-all"
+                                >
+                                    Stäng
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==================== MAIN APP ====================
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('profil');
+
+            return (
+                <div className="min-h-screen p-6">
+                    <header className="mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-display text-white">
+                                    <span className="text-ts-teal">Train</span>station VRM
+                                </h1>
+                                <p className="text-white/50 font-mono text-sm mt-1">Visitor Relationship Management</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <div className="text-sm text-white/50">Inloggad som</div>
+                                    <div className="text-white">Emma Handledare</div>
+                                </div>
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ts-gold to-ts-coral flex items-center justify-center text-white font-medium">
+                                    EH
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <TabNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+                    <main>
+                        {activeTab === 'profil' && <ProfilView />}
+                        {activeTab === 'besok' && <BesokView />}
+                        {activeTab === 'resa' && <ResaView />}
+                        {activeTab === 'admin' && <AdminView />}
+                        {activeTab === 'simulator' && <SimulatorView />}
+                    </main>
+
+                    <footer className="mt-12 text-center text-white/30 text-sm">
+                        <p>Trainstation VRM Prototyp • Mänskligt växande synligt och mätbart</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
